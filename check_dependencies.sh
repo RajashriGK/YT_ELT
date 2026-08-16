@@ -1,0 +1,261 @@
+#!/bin/bash
+#
+# Dependency checker and installer for YouTube ELT pipeline
+# Usage: bash check_dependencies.sh [--skip-install] [--verbose]
+#
+
+set -e
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+CYAN='\033[0;36m'
+NC='\033[0m' # No Color
+
+# Flags
+SKIP_INSTALL=false
+VERBOSE=false
+
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --skip-install)
+      SKIP_INSTALL=true
+      shift
+      ;;
+    --verbose)
+      VERBOSE=true
+      shift
+      ;;
+    *)
+      shift
+      ;;
+  esac
+done
+
+# Functions
+log_success() {
+  echo -e "${GREEN}✓ $1${NC}"
+}
+
+log_warning() {
+  echo -e "${YELLOW}✗ $1${NC}"
+}
+
+log_error() {
+  echo -e "${RED}✗ $1${NC}"
+}
+
+log_info() {
+  echo -e "${CYAN}$1${NC}"
+}
+
+missing_packages=()
+all_good=true
+
+echo ""
+log_info "=========================================="
+log_info "YouTube ELT - Dependency Checker"
+log_info "=========================================="
+echo ""
+
+# ============================================
+# 1. CHECK PYTHON
+# ============================================
+log_info "[1/10] Checking Python..."
+if command -v python3 &> /dev/null; then
+  python_version=$(python3 --version 2>&1)
+  log_success "Python installed: $python_version"
+else
+  log_error "Python NOT found - Install Python 3.9+"
+  all_good=false
+fi
+
+# ============================================
+# 2. CHECK DOCKER
+# ============================================
+log_info "[2/10] Checking Docker..."
+if command -v docker &> /dev/null; then
+  docker_version=$(docker --version 2>&1)
+  log_success "Docker installed: $docker_version"
+else
+  log_error "Docker NOT found - Install from https://www.docker.com"
+  all_good=false
+fi
+
+# ============================================
+# 3. CHECK DOCKER COMPOSE
+# ============================================
+log_info "[3/10] Checking Docker Compose..."
+if command -v docker-compose &> /dev/null; then
+  compose_version=$(docker-compose --version 2>&1)
+  log_success "Docker Compose installed: $compose_version"
+else
+  log_error "Docker Compose NOT found"
+  all_good=false
+fi
+
+# ============================================
+# 4. CHECK PIP
+# ============================================
+log_info "[4/10] Checking pip..."
+if command -v pip3 &> /dev/null; then
+  pip_version=$(pip3 --version 2>&1)
+  log_success "pip installed: $pip_version"
+else
+  log_error "pip NOT found"
+  all_good=false
+  exit 1
+fi
+
+# ============================================
+# 5-19. CHECK PIP PACKAGES
+# ============================================
+
+declare -A required_packages=(
+  ["apache-airflow"]="2.9.2"
+  ["apache-airflow-providers-postgres"]="latest"
+  ["apache-airflow-providers-celery"]="latest"
+  ["redis"]="latest"
+  ["psycopg2-binary"]="latest"
+  ["python-dotenv"]="latest"
+  ["google-api-python-client"]="latest"
+  ["google-auth-oauthlib"]="latest"
+  ["google-auth-httplib2"]="latest"
+  ["soda-core"]="latest"
+  ["soda-postgres"]="latest"
+  ["pytest"]="latest"
+  ["requests"]="latest"
+  ["dbt-postgres"]="latest (optional)"
+)
+
+counter=5
+installed_count=0
+not_installed_count=0
+
+for pkg in "${!required_packages[@]}"; do
+  log_info "[$counter/19] Checking $pkg..."
+  
+  if pip3 show "$pkg" &> /dev/null; then
+    version=$(pip3 show "$pkg" | grep "Version:" | awk '{print $2}')
+    log_success "$pkg (v$version)"
+    ((installed_count++))
+  else
+    log_warning "$pkg (missing)"
+    missing_packages+=("$pkg")
+    all_good=false
+    ((not_installed_count++))
+  fi
+  ((counter++))
+done
+
+# ============================================
+# 15. CHECK DOCKER IMAGES
+# ============================================
+log_info "[15/19] Checking Docker images..."
+required_images=(
+  "apache/airflow:2.9.2"
+  "postgres:13"
+  "redis:7.2-bookworm"
+)
+
+for img in "${required_images[@]}"; do
+  if docker images --format "{{.Repository}}:{{.Tag}}" | grep -q "^${img}$"; then
+    log_success "Docker image: $img"
+  else
+    log_warning "Docker image: $img (will be pulled on docker-compose up)"
+  fi
+done
+
+# ============================================
+# SUMMARY
+# ============================================
+echo ""
+log_info "=========================================="
+log_info "SUMMARY"
+log_info "=========================================="
+
+if [ "$all_good" = true ] && [ ${#missing_packages[@]} -eq 0 ]; then
+  log_success "All dependencies are installed!"
+else
+  log_warning "Some dependencies are missing:"
+  echo ""
+  
+  if [ ${#missing_packages[@]} -gt 0 ]; then
+    log_info "Missing Python packages (${#missing_packages[@]}):"
+    for pkg in "${missing_packages[@]}"; do
+      echo -e "  ${YELLOW}- $pkg${NC}"
+    done
+  fi
+fi
+
+echo ""
+log_info "Installed packages: $installed_count"
+log_info "Missing packages: $not_installed_count"
+echo ""
+
+# ============================================
+# INSTALLATION PROMPT
+# ============================================
+if [ ${#missing_packages[@]} -gt 0 ] && [ "$SKIP_INSTALL" = false ]; then
+  log_warning ""
+  log_warning "Do you want to install missing packages? (Y/n)"
+  read -r response
+  
+  if [[ "$response" != "n" && "$response" != "N" ]]; then
+    echo ""
+    log_info "Installing missing packages..."
+    echo ""
+    
+    install_cmd="pip3 install ${missing_packages[@]}"
+    
+    if [ "$VERBOSE" = true ]; then
+      log_info "Command: $install_cmd"
+    fi
+    
+    if eval "$install_cmd"; then
+      log_success "All packages installed successfully!"
+    else
+      log_error "Installation failed. Please check the errors above."
+      exit 1
+    fi
+  else
+    log_info "Skipped installation."
+  fi
+fi
+
+# ============================================
+# NEXT STEPS
+# ============================================
+echo ""
+log_info "=========================================="
+log_info "NEXT STEPS"
+log_info "=========================================="
+echo ""
+log_info "1. Navigate to project:"
+log_info "   cd /path/to/Youtube\\ ELT"
+echo ""
+log_info "2. Start Docker services:"
+log_info "   docker-compose up -d"
+echo ""
+log_info "3. Wait 30 seconds, then check:"
+log_info "   docker-compose ps"
+echo ""
+log_info "4. Access Airflow UI:"
+log_info "   http://localhost:8080"
+log_info "   User: airflow"
+log_info "   Pass: airflow123"
+echo ""
+log_info "5. Verify all 3 DAGs appear:"
+log_info "   - produce_json"
+log_info "   - update_db"
+log_info "   - data_quality"
+echo ""
+
+if [ "$all_good" = true ] && [ ${#missing_packages[@]} -eq 0 ]; then
+  log_success "Setup complete! Ready to run docker-compose up -d"
+  exit 0
+else
+  log_warning "Please resolve missing dependencies before proceeding"
+  exit 1
+fi
