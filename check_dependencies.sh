@@ -4,7 +4,8 @@
 # Usage: bash check_dependencies.sh [--skip-install] [--verbose]
 #
 
-set -e
+# Don't exit on errors - just report them
+set +e
 
 # Colors
 RED='\033[0;31m'
@@ -105,7 +106,6 @@ if command -v pip3 &> /dev/null; then
 else
   log_error "pip NOT found"
   all_good=false
-  exit 1
 fi
 
 # ============================================
