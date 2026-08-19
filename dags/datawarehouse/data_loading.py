@@ -1,14 +1,23 @@
-"""Data loading module for fetching raw data from external sources."""
+import json
+from datetime import date
+import logging
+
+logger = logging.getLogger(__name__)
 
 
-def load_youtube_data():
-    """Load YouTube video data from API."""
-    pass
+def load_data():
 
+    file_path = f"./data/YT_data_{date.today()}.json"
 
-def load_from_source(source):
-    """Generic data loading function."""
-    pass
+    try:
+        logger.info(f"Processing file: YT_data_{date.today()}")
 
-
-__all__ = ['load_youtube_data', 'load_from_source']
+        with open(file_path, "r", encoding="utf-8") as raw_data:
+            data = json.load(raw_data)
+        return data
+    except FileNotFoundError:
+        logger.error(f"File not found:{file_path}")
+        raise
+    except json.JSONDecodeError:
+        logger.error(f"Invalid JSON in file: {file_path}")
+        raise

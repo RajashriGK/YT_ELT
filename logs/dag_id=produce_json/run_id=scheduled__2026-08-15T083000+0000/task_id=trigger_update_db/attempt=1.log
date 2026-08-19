@@ -1,0 +1,16 @@
+[2026-08-16T09:04:28.010+0000] {local_task_job_runner.py:123} INFO - ::group::Pre task execution logs
+[2026-08-16T09:04:28.026+0000] {taskinstance.py:2613} INFO - Dependencies all met for dep_context=non-requeueable deps ti=<TaskInstance: produce_json.trigger_update_db scheduled__2026-08-15T08:30:00+00:00 [queued]>
+[2026-08-16T09:04:28.037+0000] {taskinstance.py:2613} INFO - Dependencies all met for dep_context=requeueable deps ti=<TaskInstance: produce_json.trigger_update_db scheduled__2026-08-15T08:30:00+00:00 [queued]>
+[2026-08-16T09:04:28.039+0000] {taskinstance.py:2866} INFO - Starting attempt 1 of 1
+[2026-08-16T09:04:28.049+0000] {taskinstance.py:2889} INFO - Executing <Task(TriggerDagRunOperator): trigger_update_db> on 2026-08-15 08:30:00+00:00
+[2026-08-16T09:04:28.056+0000] {standard_task_runner.py:72} INFO - Started process 106 to run task
+[2026-08-16T09:04:28.058+0000] {standard_task_runner.py:104} INFO - Running: ['airflow', 'tasks', 'run', 'produce_json', 'trigger_update_db', 'scheduled__2026-08-15T08:30:00+00:00', '--job-id', '259', '--raw', '--subdir', 'DAGS_FOLDER/main.py', '--cfg-path', '/tmp/tmpz8vdjtw5']
+[2026-08-16T09:04:28.060+0000] {standard_task_runner.py:105} INFO - Job 259: Subtask trigger_update_db
+[2026-08-16T09:04:28.122+0000] {task_command.py:467} INFO - Running <TaskInstance: produce_json.trigger_update_db scheduled__2026-08-15T08:30:00+00:00 [running]> on host e7f164a8cd46
+[2026-08-16T09:04:28.195+0000] {taskinstance.py:3132} INFO - Exporting env vars: AIRFLOW_CTX_DAG_EMAIL='data@engineers.com' AIRFLOW_CTX_DAG_OWNER='dataengineers' AIRFLOW_CTX_DAG_ID='produce_json' AIRFLOW_CTX_TASK_ID='trigger_update_db' AIRFLOW_CTX_EXECUTION_DATE='2026-08-15T08:30:00+00:00' AIRFLOW_CTX_TRY_NUMBER='1' AIRFLOW_CTX_DAG_RUN_ID='scheduled__2026-08-15T08:30:00+00:00'
+[2026-08-16T09:04:28.197+0000] {taskinstance.py:731} INFO - ::endgroup::
+[2026-08-16T09:04:30.186+0000] {taskinstance.py:340} INFO - ::group::Post task execution logs
+[2026-08-16T09:04:30.187+0000] {taskinstance.py:352} INFO - Marking task as SUCCESS. dag_id=produce_json, task_id=trigger_update_db, run_id=scheduled__2026-08-15T08:30:00+00:00, execution_date=20260815T083000, start_date=20260816T090428, end_date=20260816T090430
+[2026-08-16T09:04:30.241+0000] {local_task_job_runner.py:266} INFO - Task exited with return code 0
+[2026-08-16T09:04:30.263+0000] {taskinstance.py:3895} INFO - 0 downstream tasks scheduled from follow-on schedule check
+[2026-08-16T09:04:30.267+0000] {local_task_job_runner.py:245} INFO - ::endgroup::

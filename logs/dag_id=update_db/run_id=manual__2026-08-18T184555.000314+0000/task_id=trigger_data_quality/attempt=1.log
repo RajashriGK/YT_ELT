@@ -1,0 +1,16 @@
+[2026-08-18T18:46:24.545+0000] {local_task_job_runner.py:123} INFO - ::group::Pre task execution logs
+[2026-08-18T18:46:24.561+0000] {taskinstance.py:2613} INFO - Dependencies all met for dep_context=non-requeueable deps ti=<TaskInstance: update_db.trigger_data_quality manual__2026-08-18T18:45:55.000314+00:00 [queued]>
+[2026-08-18T18:46:24.571+0000] {taskinstance.py:2613} INFO - Dependencies all met for dep_context=requeueable deps ti=<TaskInstance: update_db.trigger_data_quality manual__2026-08-18T18:45:55.000314+00:00 [queued]>
+[2026-08-18T18:46:24.573+0000] {taskinstance.py:2866} INFO - Starting attempt 1 of 1
+[2026-08-18T18:46:24.586+0000] {taskinstance.py:2889} INFO - Executing <Task(TriggerDagRunOperator): trigger_data_quality> on 2026-08-18 18:45:55.000314+00:00
+[2026-08-18T18:46:24.592+0000] {standard_task_runner.py:72} INFO - Started process 121 to run task
+[2026-08-18T18:46:24.595+0000] {standard_task_runner.py:104} INFO - Running: ['airflow', 'tasks', 'run', 'update_db', 'trigger_data_quality', 'manual__2026-08-18T18:45:55.000314+00:00', '--job-id', '301', '--raw', '--subdir', 'DAGS_FOLDER/main.py', '--cfg-path', '/tmp/tmp7p9m809i']
+[2026-08-18T18:46:24.597+0000] {standard_task_runner.py:105} INFO - Job 301: Subtask trigger_data_quality
+[2026-08-18T18:46:24.664+0000] {task_command.py:467} INFO - Running <TaskInstance: update_db.trigger_data_quality manual__2026-08-18T18:45:55.000314+00:00 [running]> on host 95da226e97a8
+[2026-08-18T18:46:24.748+0000] {taskinstance.py:3132} INFO - Exporting env vars: AIRFLOW_CTX_DAG_EMAIL='data@engineers.com' AIRFLOW_CTX_DAG_OWNER='rajashrigk' AIRFLOW_CTX_DAG_ID='update_db' AIRFLOW_CTX_TASK_ID='trigger_data_quality' AIRFLOW_CTX_EXECUTION_DATE='2026-08-18T18:45:55.000314+00:00' AIRFLOW_CTX_TRY_NUMBER='1' AIRFLOW_CTX_DAG_RUN_ID='manual__2026-08-18T18:45:55.000314+00:00'
+[2026-08-18T18:46:24.751+0000] {taskinstance.py:731} INFO - ::endgroup::
+[2026-08-18T18:46:24.838+0000] {taskinstance.py:340} INFO - ::group::Post task execution logs
+[2026-08-18T18:46:24.840+0000] {taskinstance.py:352} INFO - Marking task as SUCCESS. dag_id=update_db, task_id=trigger_data_quality, run_id=manual__2026-08-18T18:45:55.000314+00:00, execution_date=20260818T184555, start_date=20260818T184624, end_date=20260818T184624
+[2026-08-18T18:46:24.890+0000] {local_task_job_runner.py:266} INFO - Task exited with return code 0
+[2026-08-18T18:46:24.911+0000] {taskinstance.py:3895} INFO - 0 downstream tasks scheduled from follow-on schedule check
+[2026-08-18T18:46:24.916+0000] {local_task_job_runner.py:245} INFO - ::endgroup::

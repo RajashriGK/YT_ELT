@@ -1,62 +1,94 @@
-from __future__ import annotations
-
+from airflow import DAG
+import pendulum
 from datetime import datetime
+from datetime import timedelta
+from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 
-try:
-    from airflow import DAG
-    from airflow.operators.python import PythonOperator
-except Exception:  # pragma: no cover - in CI the environment provides Airflow
-    # Provide lightweight fallbacks for environments without Airflow installed
-    class DAG(dict):
-        def __init__(self, dag_id, default_args=None, schedule_interval=None, start_date=None, catchup=False):
-            super().__init__()
-            self.dag_id = dag_id
+from api.video_stats import get_playlistid, get_video_ids, extract_video_data, save_to_json
 
-    def PythonOperator(**kwargs):
-        return None
+from datawarehouse.dwh import staging_table, core_table
+from dataquality.soda import yt_elt_data_quality
+
+#define local timezone
+local_tz=pendulum.timezone("Africa/Cairo")
 
 
-def _noop(**kwargs):
-    print('noop')
+# Default Args
+default_args = {
+    "owner": "rajashrigk",
+    "depends_on_past": False,
+    "email_on_failure": False,
+    "email_on_retry": False,
+    "email": "data@engineers.com",
+    # 'retries': 1,
+    # 'retry_delay': timedelta(minutes=5),
+    "max_active_runs": 1,
+    "dagrun_timeout": timedelta(hours=1),
+    "start_date": datetime(2026, 1, 1, tzinfo=local_tz),
+    # 'end_date': datetime(2030, 12, 31, tzinfo=local_tz),
+}
 
+# Variables
+staging_schema = "staging"
+core_schema = "core"
 
-# produce_json DAG
+# DAG 1: produce_json
 with DAG(
     dag_id="produce_json",
-    start_date=datetime(2026, 1, 1),
-    schedule_interval=None,
+    default_args=default_args,
+    description="DAG to produce JSON file with raw data",
+    schedule="0 14 * * *",
     catchup=False,
-) as produce_json:
-    get_playlist_id = PythonOperator(task_id="get_playlist_id", python_callable=_noop)
-    get_video_ids = PythonOperator(task_id="get_video_ids", python_callable=_noop)
-    save_to_json = PythonOperator(task_id="save_to_json", python_callable=_noop)
-    trigger_update_db = PythonOperator(task_id="trigger_update_db", python_callable=_noop)
+) as dag_produce:
+    # Define tasks
+    playlist_id = get_playlistid()
+    video_ids = get_video_ids(playlist_id)
+    extract_data = extract_video_data(video_ids)
+    save_to_json_task = save_to_json(extract_data)
 
-    get_playlist_id >> get_video_ids >> save_to_json >> trigger_update_db
+    trigger_update_db = TriggerDagRunOperator(
+        task_id="trigger_update_db",
+        trigger_dag_id="update_db",
+    )
 
+     
+    # Define dependencies
+    playlist_id >> video_ids >> extract_data >> save_to_json_task >> trigger_update_db
 
-# update_db DAG
+# DAG 2: update_db
 with DAG(
     dag_id="update_db",
-    start_date=datetime(2026, 1, 1),
-    schedule_interval=None,
+    default_args=default_args,
+    description="DAG to process JSON file and insert data into both staging and core schemas",
     catchup=False,
-) as update_db:
-    core_table = PythonOperator(task_id="core_table", python_callable=_noop)
-    staging_table = PythonOperator(task_id="staging_table", python_callable=_noop)
-    trigger_data_quality = PythonOperator(task_id="trigger_data_quality", python_callable=_noop)
+    schedule=None,
+) as dag_update:
 
-    core_table >> staging_table >> trigger_data_quality
+    # Define tasks
+    update_staging = staging_table()
+    update_core = core_table()
+
+    trigger_data_quality = TriggerDagRunOperator(
+        task_id="trigger_data_quality",
+        trigger_dag_id="data_quality",
+    )
+
+    # Define dependencies
+    update_staging >> update_core >> trigger_data_quality
 
 
-# data_quality DAG
+    # DAG 3: data_quality
 with DAG(
     dag_id="data_quality",
-    start_date=datetime(2026, 1, 1),
-    schedule_interval=None,
+    default_args=default_args,
+    description="DAG to check the data quality on both layers in the database",
     catchup=False,
-) as data_quality:
-    soda_test_core = PythonOperator(task_id="soda_test_core", python_callable=_noop)
-    soda_test_staging = PythonOperator(task_id="soda_test_staging", python_callable=_noop)
+    schedule=None,
+) as dag_quality:
 
-    soda_test_core >> soda_test_staging
+    # Define tasks
+    soda_validate_staging = yt_elt_data_quality(staging_schema)
+    soda_validate_core = yt_elt_data_quality(core_schema)
+
+    # Define dependencies
+    soda_validate_staging >> soda_validate_core
